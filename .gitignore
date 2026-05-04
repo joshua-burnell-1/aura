@@ -1,0 +1,65 @@
+# macOS
+.DS_Store
+
+# Node / npm
+node_modules/
+npm-debug.*
+yarn-error.*
+yarn-debug.*
+
+# Secrets
+.env
+.env.local
+.env.*.local
+worker/.dev.vars
+worker/.dev.vars.local
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native build output
+ios/Pods/
+ios/build/
+ios/DerivedData/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+.kotlin/
+
+# Metro
+.metro-health-check*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# TypeScript
+*.tsbuildinfo
+
+# Wrangler / Cloudflare
+worker/.wrangler/
+.wrangler/
+
+# Editors
+.vscode/
+.idea/
+
+# Test / coverage
+coverage/
+
+# Misc
+*.log
