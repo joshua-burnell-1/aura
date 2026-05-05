@@ -5,7 +5,7 @@ import { transcribeRoute } from './routes/transcribe';
 import { chatRoute } from './routes/chat';
 
 type Env = {
-  GEMINI_API_KEY: string;
+  ANTHROPIC_API_KEY: string;
   OPENAI_API_KEY: string;
   RATE_LIMITER: any;
 };

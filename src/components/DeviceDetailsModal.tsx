@@ -1,10 +1,12 @@
-import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../theme';
 import type { Device } from '../state/useDeviceStore';
 
 interface Props {
   device: Device | null;
+  isIdentifying?: boolean;
   onClose: () => void;
+  onIdentify?: () => void;
 }
 
 function fmtTimestamp(ms: number | null | undefined): string {
@@ -22,7 +24,7 @@ function rssiStats(samples: { rssi: number; timestamp: number }[]) {
   return { min, max, mean: Math.round(mean), count: samples.length };
 }
 
-export function DeviceDetailsModal({ device, onClose }: Props) {
+export function DeviceDetailsModal({ device, isIdentifying = false, onClose, onIdentify }: Props) {
   const theme = useTheme();
 
   if (!device) {
@@ -68,6 +70,30 @@ export function DeviceDetailsModal({ device, onClose }: Props) {
         </View>
 
         <ScrollView contentContainerStyle={styles.body}>
+          {onIdentify && (
+            <TouchableOpacity
+              style={[
+                styles.identifyButton,
+                {
+                  backgroundColor: theme.colors.primary,
+                  opacity: isIdentifying ? 0.7 : 1,
+                },
+              ]}
+              onPress={onIdentify}
+              disabled={isIdentifying}
+            >
+              {isIdentifying ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.identifyButtonText}>
+                  {device.make && device.model
+                    ? 'Re-identify with Anthropic'
+                    : 'Identify with Anthropic'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+
           <Section title="Identification" theme={theme}>
             <Row label="Make" value={device.make} theme={theme} />
             <Row label="Model" value={device.model} theme={theme} />
@@ -244,5 +270,19 @@ const styles = StyleSheet.create({
   },
   mono: {
     fontFamily: 'Menlo',
+  },
+  identifyButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    minHeight: 48,
+  },
+  identifyButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });

@@ -1,6 +1,14 @@
 # Aura - Voice-Native Bluetooth Device Assistant
 
-Voice-first assistant for troubleshooting Bluetooth devices using Google Gemini AI with real-time search grounding.
+Voice-first assistant for troubleshooting Bluetooth devices, using Anthropic Claude with the `web_search` tool for grounded, citation-backed answers.
+
+## ⚠️ Status: Unfinished
+
+**This project is paused at a hard ceiling: we cannot reliably identify a BLE device's make and model from passive broadcast metadata alone.** The end-to-end UX works (BLE scan → grounded voice answers with citations), but identification is the load-bearing piece, and BLE advertisements simply don't carry enough information for an LLM (or any classifier) to consistently produce the right `make` and `model`.
+
+See **[`EXEC-SUMMARY.md`](./EXEC-SUMMARY.md)** for a one-page write-up of what works, why identification is hard, and three potential paths to making this useful.
+
+**If you want to advance this work, please fork the repo** and pursue one of those paths (active GATT discovery, a fingerprint database, or a pivot to user-added device fleets). The bones of the app — Cloudflare Worker proxy, voice loop, BLE scan + categorization scaffolding — are in good shape and reusable.
 
 ## Quick Start
 
@@ -32,7 +40,7 @@ Worker will run at `http://localhost:8787`
 echo "EXPO_PUBLIC_PROXY_BASE_URL=http://localhost:8787" > .env
 
 # Start Expo dev server
-npx expo start
+npx expo start --dev-client
 ```
 
 ### 3. Deploy Worker to Cloudflare
@@ -44,7 +52,7 @@ cd worker
 npx wrangler login
 
 # Set secrets — replace placeholders with your own keys
-echo "<YOUR_GEMINI_API_KEY>" | npx wrangler secret put GEMINI_API_KEY
+echo "<YOUR_ANTHROPIC_API_KEY>" | npx wrangler secret put ANTHROPIC_API_KEY
 echo "<YOUR_OPENAI_API_KEY>" | npx wrangler secret put OPENAI_API_KEY
 
 # Deploy
@@ -89,26 +97,29 @@ aura-project/
 ├── worker/                  # Cloudflare Worker
 │   ├── src/
 │   │   ├── routes/         # API endpoints
-│   │   ├── llm/            # AI integrations
+│   │   ├── llm/            # AI integrations (Anthropic + OpenAI Whisper)
 │   │   └── index.ts
 │   └── wrangler.toml
+├── EXEC-SUMMARY.md           # Status write-up for stakeholders
 └── README.md
 ```
 
 ## Features
 
-- **BLE Scanning**: Discover nearby Bluetooth devices
-- **AI Identification**: Gemini identifies make/model from metadata
-- **Voice Interface**: Press-and-hold to ask questions
-- **Streaming Responses**: Real-time TTS during AI response
-- **Zone Management**: Assign devices to physical spaces
-- **Privacy-First**: No cloud storage, PII scrubbed before transmission
+- **BLE Scanning**: Discover nearby Bluetooth devices (capped at 100 for the demo)
+- **Two-phase flow**: Scan first (collect raw devices), then run identification serially against Anthropic
+- **Local categorization fallbacks**: Apple Continuity decoder + SIG service-UUID dictionary so devices get a useful label even when the LLM whiffs
+- **Grouped device list**: cards grouped by category in the Radar tab
+- **Voice Interface**: Press-and-hold to ask troubleshooting questions
+- **Citations**: First citation inline + tappable `+N` to expand the rest
+- **Zone Management**: Assign devices to physical spaces (Spaces tab)
+- **Privacy-First**: No cloud storage, PII scrubbed before transmission, manufacturer-data prefix-only
 
 ## Tech Stack
 
 **Frontend**:
-- React Native + Expo
-- Zustand (state management)
+- React Native + Expo (SDK 54)
+- Zustand (state management, persisted via AsyncStorage)
 - react-native-ble-plx (Bluetooth)
 - expo-av (audio recording)
 - expo-speech (TTS)
@@ -116,21 +127,8 @@ aura-project/
 **Backend**:
 - Cloudflare Workers
 - Hono (web framework)
-- Google Gemini 2.5 Flash
-- OpenAI Whisper-1
-
-## Deployed Backend
-
-The backend is already deployed at:
-```
-https://aura-proxy.aura2-proxy.workers.dev
-```
-
-Test it:
-```bash
-curl https://aura-proxy.aura2-proxy.workers.dev/
-# Returns: {"status":"ok","service":"aura-proxy"}
-```
+- Anthropic Claude Opus 4.7 with `web_search` tool
+- OpenAI Whisper-1 (transcription)
 
 ## Troubleshooting
 

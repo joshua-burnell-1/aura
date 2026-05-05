@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
-import { groundedChat } from '../llm/gemini';
+import { groundedChat } from '../llm/anthropic';
 import { ChatRequestSchema } from '../lib/zod-schemas';
 
 type Env = {
-  GEMINI_API_KEY: string;
+  ANTHROPIC_API_KEY: string;
   OPENAI_API_KEY: string;
   RATE_LIMITER: any;
 };
@@ -35,7 +35,7 @@ chatRoute.post('/', async (c) => {
       c.header('Cache-Control', 'no-cache');
       c.header('Connection', 'keep-alive');
 
-      for await (const event of groundedChat(request, c.env.GEMINI_API_KEY)) {
+      for await (const event of groundedChat(request, c.env.ANTHROPIC_API_KEY)) {
         await stream.write(`event: ${event.type}\n`);
         await stream.write(`data: ${JSON.stringify(event)}\n\n`);
       }

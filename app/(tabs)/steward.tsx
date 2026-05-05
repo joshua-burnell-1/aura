@@ -7,6 +7,9 @@ import {
   StyleSheet,
   TextInput,
   Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useTheme } from '../../src/theme';
 import { useDeviceStore } from '../../src/state/useDeviceStore';
@@ -35,6 +38,16 @@ export default function StewardScreen() {
   const [textInput, setTextInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [expandedCitations, setExpandedCitations] = useState<Set<string>>(new Set());
+
+  const toggleCitations = (msgId: string) => {
+    setExpandedCitations((prev) => {
+      const next = new Set(prev);
+      if (next.has(msgId)) next.delete(msgId);
+      else next.add(msgId);
+      return next;
+    });
+  };
 
   const devicesById = useDeviceStore((state) => state.devices);
   // A device is "identified enough for Steward" if we have any meaningful
@@ -286,7 +299,11 @@ export default function StewardScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setSelectedDeviceId(null)}>
           <Text style={[styles.backButton, { color: theme.colors.primary }]}>← Back</Text>
@@ -311,32 +328,73 @@ export default function StewardScreen() {
             </Text>
           </View>
         ) : (
-          messages.map((msg) => (
-            <View
-              key={msg.id}
-              style={[
-                styles.message,
-                msg.role === 'user' ? styles.userMessage : styles.assistantMessage,
-                { backgroundColor: msg.role === 'user' ? theme.colors.primary : theme.colors.surface },
-              ]}
-            >
-              <Text
+          messages.map((msg) => {
+            // Thinking placeholder — empty assistant bubble while we wait for
+            // the response. Replace with a spinner + "Thinking..." line so the
+            // user has visual confirmation something's happening.
+            const isAssistantThinking =
+              msg.role === 'assistant' && !msg.content && isStreaming;
+            return (
+              <View
+                key={msg.id}
                 style={[
-                  styles.messageText,
-                  { color: msg.role === 'user' ? '#fff' : theme.colors.text },
+                  styles.message,
+                  msg.role === 'user' ? styles.userMessage : styles.assistantMessage,
+                  { backgroundColor: msg.role === 'user' ? theme.colors.primary : theme.colors.surface },
                 ]}
               >
-                {msg.content}
-              </Text>
-              {msg.citations && msg.citations.length > 0 && (
-                <View style={styles.citations}>
-                  {msg.citations.map((citation) => (
-                    <Citation key={citation.id} citation={citation} />
-                  ))}
-                </View>
-              )}
-            </View>
-          ))
+                {isAssistantThinking ? (
+                  <View style={styles.thinkingRow}>
+                    <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+                    <Text
+                      style={[styles.thinkingText, { color: theme.colors.textSecondary }]}
+                    >
+                      Thinking…
+                    </Text>
+                  </View>
+                ) : (
+                  <Text
+                    style={[
+                      styles.messageText,
+                      { color: msg.role === 'user' ? '#fff' : theme.colors.text },
+                    ]}
+                  >
+                    {msg.content}
+                  </Text>
+                )}
+                {msg.citations && msg.citations.length > 0 && (() => {
+                  const isExpanded = expandedCitations.has(msg.id);
+                  const visible = isExpanded ? msg.citations : msg.citations.slice(0, 1);
+                  const remaining = msg.citations.length - 1;
+                  return (
+                    <View style={styles.citations}>
+                      {visible.map((citation) => (
+                        <Citation key={citation.id} citation={citation} />
+                      ))}
+                      {remaining > 0 && (
+                        <TouchableOpacity
+                          onPress={() => toggleCitations(msg.id)}
+                          style={[
+                            styles.morePill,
+                            { borderColor: theme.colors.border },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.morePillText,
+                              { color: theme.colors.primary },
+                            ]}
+                          >
+                            {isExpanded ? 'Show less' : `+${remaining}`}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })()}
+              </View>
+            );
+          })
         )}
       </ScrollView>
 
@@ -357,7 +415,7 @@ export default function StewardScreen() {
           disabled={isStreaming}
         />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -448,5 +506,25 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     paddingVertical: 8,
+  },
+  thinkingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  thinkingText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  morePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignSelf: 'flex-start',
+  },
+  morePillText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

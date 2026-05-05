@@ -15,7 +15,15 @@ transcribeRoute.post('/', async (c) => {
     const formData = await c.req.formData();
     const audioFile = formData.get('audio');
 
-    if (!audioFile || !(audioFile instanceof File)) {
+    // formData.get returns FormDataEntryValue | null — string for plain fields,
+    // File-like object for uploads. The Workers' `File` global isn't a class
+    // TS can narrow on, so we treat the value as a Blob-shaped object once we
+    // confirm it has arrayBuffer().
+    if (
+      !audioFile ||
+      typeof audioFile === 'string' ||
+      typeof (audioFile as any).arrayBuffer !== 'function'
+    ) {
       return c.json(
         {
           error: 'Invalid request',
@@ -25,8 +33,10 @@ transcribeRoute.post('/', async (c) => {
       );
     }
 
-    // Check file size (4MB limit for Workers)
-    if (audioFile.size > 4 * 1024 * 1024) {
+    const audioBlobLike = audioFile as Blob;
+
+    // 4MB limit for Workers form bodies
+    if (audioBlobLike.size > 4 * 1024 * 1024) {
       return c.json(
         {
           error: 'File too large',
@@ -36,9 +46,8 @@ transcribeRoute.post('/', async (c) => {
       );
     }
 
-    // Convert File to Blob
-    const audioBlob = new Blob([await audioFile.arrayBuffer()], {
-      type: audioFile.type,
+    const audioBlob = new Blob([await audioBlobLike.arrayBuffer()], {
+      type: audioBlobLike.type,
     });
 
     // Transcribe with OpenAI Whisper

@@ -141,9 +141,17 @@ export async function startBLEScan(
  * Stop BLE scanning
  */
 export async function stopBLEScan(): Promise<void> {
-  if (scanSubscription) {
-    scanSubscription.remove();
-    scanSubscription = null;
+  // BLE PLX's startDeviceScan returns void in some versions and a non-
+  // Subscription truthy value in others; only call .remove() when it's
+  // actually a function. bleManager.stopDeviceScan() is the canonical
+  // way to stop the scan regardless.
+  if (scanSubscription && typeof scanSubscription.remove === 'function') {
+    try {
+      scanSubscription.remove();
+    } catch (e) {
+      console.warn('scanSubscription.remove threw:', e);
+    }
   }
+  scanSubscription = null;
   await bleManager.stopDeviceScan();
 }
