@@ -6,9 +6,7 @@ Voice-first assistant for troubleshooting Bluetooth devices, using Anthropic Cla
 
 **This project is paused at a hard ceiling: we cannot reliably identify a BLE device's make and model from passive broadcast metadata alone.** The end-to-end UX works (BLE scan → grounded voice answers with citations), but identification is the load-bearing piece, and BLE advertisements simply don't carry enough information for an LLM (or any classifier) to consistently produce the right `make` and `model`.
 
-See **[`EXEC-SUMMARY.md`](./EXEC-SUMMARY.md)** for a one-page write-up of what works, why identification is hard, and three potential paths to making this useful.
-
-**If you want to advance this work, please fork the repo** and pursue one of those paths (active GATT discovery, a fingerprint database, or a pivot to user-added device fleets). The bones of the app — Cloudflare Worker proxy, voice loop, BLE scan + categorization scaffolding — are in good shape and reusable.
+**If you want to advance this work, please fork the repo.** Promising directions: active GATT discovery (connect to each device and read the standard Device Information Service), a real-world device fingerprint database, or a pivot to user-added device fleets. The bones of the app — Cloudflare Worker proxy, voice loop, BLE scan + categorization scaffolding — are in good shape and reusable.
 
 ## Quick Start
 
@@ -100,7 +98,6 @@ aura-project/
 │   │   ├── llm/            # AI integrations (Anthropic + OpenAI Whisper)
 │   │   └── index.ts
 │   └── wrangler.toml
-├── EXEC-SUMMARY.md           # Status write-up for stakeholders
 └── README.md
 ```
 
